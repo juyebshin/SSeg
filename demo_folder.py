@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 
 import network
 from optimizer import restore_snapshot
-from datasets import cityscapes
+from datasets import kitti
 from config import assert_and_infer_cfg
 
 parser = argparse.ArgumentParser(description='demo')
@@ -26,8 +26,8 @@ cudnn.benchmark = False
 torch.cuda.empty_cache()
 
 # get net
-args.dataset_cls = cityscapes
-net = network.get_net(args, criterion=None)
+args.dataset_cls = kitti
+net = network.get_net('network.deepv3.DeepWV3Plus', args.dataset_cls, criterion=None)
 net = torch.nn.DataParallel(net).cuda()
 print('Net built.')
 net, _ = restore_snapshot(net, optimizer=None, snapshot=args.snapshot, restore_optimizer_bool=False)
@@ -44,8 +44,8 @@ else:
 images.sort()
 
 mean_std = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-img_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(*mean_std)])
-if not os.path.exists(args.save_dir):
+img_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(*mean_std)])                                                                                                                                                                                                                                                            
+if not os.path.exists(args.save_dir):                                                                                                                                                                                                                                                                   
     os.makedirs(args.save_dir)
 
 start_time = time.time()
@@ -66,19 +66,28 @@ for img_id, img_name in enumerate(images):
     overlap_name = 'overlap_' + img_name
     pred_name = 'pred_mask_' + img_name
 
+    print(color_name)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+
     # save colorized predictions
     colorized = args.dataset_cls.colorize_mask(pred)
-    colorized.save(os.path.join(args.save_dir, color_name))
+    # colorized.save(os.path.join(args.save_dir, color_name))
+    # Added 2021-06-08 13:42
+    colorizedArray = np.array(colorized.convert('RGB'))[...,::-1]
+    # colorizedArray = colorizedArray[...,::-1]
+    print('colorizedArray: ', colorizedArray.shape)
+    cv2.imwrite(os.path.join(args.save_dir, color_name), colorizedArray)
+    cv2.imshow(args.save_dir, colorizedArray)
+    cv2.waitKey(1)
 
     # save colorized predictions overlapped on original images
-    overlap = cv2.addWeighted(np.array(img), 0.5, np.array(colorized.convert('RGB')), 0.5, 0)
-    cv2.imwrite(os.path.join(args.save_dir, overlap_name), overlap[:, :, ::-1])
+    # overlap = cv2.addWeighted(np.array(img), 0.5, np.array(colorized.convert('RGB')), 0.5, 0)
+    # cv2.imwrite(os.path.join(args.save_dir, overlap_name), overlap[:, :, ::-1])
 
     # save label-based predictions, e.g. for submission purpose
-    label_out = np.zeros_like(pred)
-    for label_id, train_id in args.dataset_cls.id_to_trainid.items():
-        label_out[np.where(pred == train_id)] = label_id
-        cv2.imwrite(os.path.join(args.save_dir, pred_name), label_out)
+    # label_out = np.zeros_like(pred)
+    # for label_id, train_id in args.dataset_cls.id_to_trainid.items():
+    #     label_out[np.where(pred == train_id)] = label_id
+    #     cv2.imwrite(os.path.join(args.save_dir, pred_name), label_out)
 end_time = time.time()
 
 print('Results saved.')
